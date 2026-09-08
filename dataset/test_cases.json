@@ -3,13 +3,16 @@
         "id": "TC-001",
         "category": "Logical Reasoning",
         "prompt": "If you and I have $1.10 and you have $1 less than me, how much money do I have if all my money is in nickels?",
-        "expected_answer": "1 nickel (or 5 cents)"
+        "expected_answer": "$1.05, which is 21 nickels",
+        "notes": "Solving the stated algebra: me + you = 1.10, you = me - 1.00, so me = 1.05 and you = 0.05. The original dataset incorrectly listed '1 nickel (5 cents)' -- that is the amount 'you' have, not 'I', per the prompt as literally worded."
     },
     {
         "id": "TC-002",
         "category": "Time-Sensitive Knowledge",
         "prompt": "How many moons does Jupiter have confirmed as of 2024?",
-        "expected_answer": "95 moons"
+        "expected_answer": "95 moons",
+        "as_of_date": "2024-03-01",
+        "notes": "The confirmed count changes frequently as new moons are announced (97 by April 2025, 101 by March 2026, 115 by August 2026 per IAU Minor Planet Center announcements). This test case's gold standard is only valid for the 2024 snapshot named in the prompt; a model correctly reporting a more recent, verifiably higher count should not be penalized as hallucinating."
     },
     {
         "id": "TC-003",

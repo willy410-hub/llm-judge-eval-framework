@@ -1,73 +1,27 @@
-import json
-import os
-from dotenv import load_dotenv
-from evaluator.judge import LLMJudge
-from groq import Groq
-from tabulate import tabulate
-
-load_dotenv()
+"""CLI entrypoint: run the full evaluation pipeline and print a report."""
+from app.core.config import get_settings
+from app.core.exceptions import EvalFrameworkError
+from app.pipeline import run_evaluation_pipeline
+from app.report import print_report
 
 
-def run_evaluation_pipeline():
-  groq_api_key = os.getenv('GROQ_API_KEY')
-  if not groq_api_key:
-    print('❌ Error: GROQ_API_KEY environment variable not set in .env file.')
-    return
+def main() -> None:
+    settings = get_settings()
 
-  client = Groq(api_key=groq_api_key)
-  judge = LLMJudge(api_key=groq_api_key)
+    print(f"Starting Evaluation Pipeline against Target Model: {settings.target_model}\n")
 
-  with open('dataset/test_cases.json', 'r') as f:
-    test_cases = json.load(f)
+    try:
+        results = run_evaluation_pipeline()
+    except EvalFrameworkError as exc:
+        print(f"Error: {exc}")
+        return
 
-  target_model = 'llama-3.1-8b-instant'
-  results_summary = []
+    for result in results:
+        status = "PASS" if result.evaluation.is_correct else "FAIL"
+        print(f"[{result.test_case.id}] {result.test_case.category}: {status}")
 
-  print(
-      f'🚀 Starting Evaluation Pipeline against Target Model:'
-      f' {target_model}\n'
-  )
-
-  for test in test_cases:
-    print(
-        f"Running Test Case [{test['id']}] - Category: {test['category']}..."
-    )
-
-    response = client.chat.completions.create(
-        model=target_model,
-        messages=[{'role': 'user', 'content': test['prompt']}],
-        temperature=0.1,
-    )
-    actual_response = response.choices[0].message.content.strip()
-
-    eval_res = judge.evaluate_response(
-        prompt=test['prompt'],
-        expected=test['expected_answer'],
-        actual=actual_response,
-    )
-
-    results_summary.append([
-        test['id'],
-        test['category'],
-        'PASS' if eval_res.is_correct else 'FAIL',
-        f'{eval_res.score:.2f}',
-        eval_res.failure_mode,
-        eval_res.reasoning[:60] + '...',
-    ])
-
-  print('\n' + '=' * 80)
-  print('📊 EVALUATION & FAILURE ANALYSIS REPORT')
-  print('=' * 80)
-  headers = [
-      'ID',
-      'Category',
-      'Status',
-      'Score',
-      'Failure Mode',
-      'Judge Reasoning Snippet',
-  ]
-  print(tabulate(results_summary, headers=headers, tablefmt='grid'))
+    print_report(results)
 
 
-if __name__ == '__main__':
-  run_evaluation_pipeline()
+if __name__ == "__main__":
+    main()
